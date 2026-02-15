@@ -5,6 +5,17 @@ A script to convert chart data from [textage.cc](https://textage.cc) into BMS fi
 ## Development
 
 - This project is maintained with OpenAI Codex-assisted development.
+- Unit tests are enforced by both a local pre-commit hook and GitHub Actions CI.
+
+### Enable pre-commit hook
+
+Run this once in your local clone:
+
+`git config core.hooksPath .githooks`
+
+After that, every commit runs:
+
+`python3 -m unittest discover -s tests -v`
 
 ## Fork history
 
