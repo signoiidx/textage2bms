@@ -3,7 +3,6 @@ from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium import webdriver
 from pyquery import PyQuery as pq
-from os.path import exists
 from sys import argv, stderr
 
 LN_DISABLE = False
@@ -153,25 +152,43 @@ def get_sections(doc):
         sections[sec_num][1][str(int(d[0]) - 40)][d[2]] = False
     return sections
 
+
 def get_driver():
-    for trial in [
-        ["c", "/usr/bin/chromium"],
-        ["c", "/usr/bin/chrome"],
-        ["c", None],
-        ["f", "/usr/bin/firefox"],
-        ["f", None]
-    ]:
+    trials = [
+        ("chrome", "/usr/bin/chromium"),
+        ("chrome", "/usr/bin/chrome"),
+        ("chrome", None),
+        ("firefox", "/usr/bin/firefox"),
+        ("firefox", None),
+    ]
+    errors = []
+
+    for browser, binary in trials:
         try:
-            options = ChromeOptions() if trial[0] == "c" else FirefoxOptions() 
-            options.add_argument("--headless" if trial[0] == "c" else "-headless")
-            if trial[0] == "c":
-                options.binary_location = trial[1]
-            b = webdriver.Chrome(options=options) if trial[0] == "c" else webdriver.Firefox(firefox_binary=trial[1], options=options)
-            return b
+            if browser == "chrome":
+                options = ChromeOptions()
+                options.add_argument("--headless=new")
+                options.add_argument("--disable-gpu")
+                if binary:
+                    options.binary_location = binary
+                return webdriver.Chrome(options=options)
+
+            options = FirefoxOptions()
+            options.add_argument("-headless")
+            if binary:
+                options.binary_location = binary
+            return webdriver.Firefox(options=options)
         except Exception as e:
-            print(e, file=stderr)
+            errors.append(f"{browser} (binary={binary or 'auto'}): {e}")
+
+    error_message = "Failed to initialize any WebDriver:\n" + "\n".join(errors)
+    raise RuntimeError(error_message)
+
 
 if __name__ == '__main__':
+    if len(argv) < 2:
+        raise SystemExit('Usage: python3 textage2bms.py <textage_url>')
+
     b = get_driver()
     b.get(argv[1])
     doc = pq(b.page_source)
