@@ -2,6 +2,10 @@
 
 A script to convert chart data from [textage.cc](https://textage.cc) into BMS files.
 
+## Development
+
+- This project is maintained with OpenAI Codex-assisted development.
+
 ## Fork history
 
 - original: [Saren-Arterius/textage2bms](https://github.com/Saren-Arterius/textage2bms)
@@ -11,16 +15,20 @@ A script to convert chart data from [textage.cc](https://textage.cc) into BMS fi
   - Remove unwanted files (only keep `textage2bms.py`)
   - Still there will be more...
 
+## Current project changes
+
+- Run in headless mode and try Chrome/Firefox WebDriver candidates automatically.
+
 ## Dependencies
 
-- Python3
-- python-selenium
+- Python 3
+- Selenium
 - Chrom{e, ium} or Firefox
 - PyQuery
 
 ## Usage
 
-`$ python3 textage2bms.py 'http://textage.cc/score/24/marenect.html?1AC0' > marenect.bms`
+`$ python3 textage2bms.py 'https://textage.cc/score/24/marenect.html?1AC0' > marenect.bms`
 
 ## Options
 
