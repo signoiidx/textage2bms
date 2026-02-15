@@ -185,30 +185,29 @@ def get_driver():
     raise RuntimeError(error_message)
 
 
-if __name__ == '__main__':
-    if len(argv) < 2:
-        raise SystemExit('Usage: python3 textage2bms.py <textage_url>')
-
-    b = get_driver()
-    b.get(argv[1])
-    doc = pq(b.page_source)
-    headers = {
+def build_headers(driver):
+    return {
         '#PLAYER': '1',
         '#RANK': '3',
         '#DIFFICULTY': '4',
         '#STAGEFILE': '',
-        '#GENRE': b.execute_script('return genre'),
-        '#TITLE': b.execute_script('return title'),
-        '#ARTIST': b.execute_script('return artist'),
-        '#BPM': b.execute_script('return bpm'),
+        '#GENRE': driver.execute_script('return genre'),
+        '#TITLE': driver.execute_script('return title'),
+        '#ARTIST': driver.execute_script('return artist'),
+        '#BPM': driver.execute_script('return bpm'),
         '#PLAYLEVEL': '12',
         '#WAV02': 'out.wav',
     }
+
+
+def print_header_field(headers):
     print('*---------------------- HEADER FIELD')
     for k, v in headers.items():
         print(k, v)
+
+
+def print_main_data_field(sections):
     print('\n*---------------------- MAIN DATA FIELD\n#00101:02\n')
-    sections = get_sections(doc)
     for section in sections:
         section_num, channels = section
         for channel, notes in channels.items():
@@ -220,3 +219,23 @@ if __name__ == '__main__':
                 data = notes
             print('#{:03d}{}:{}'.format(section_num, channel, data))
         print()
+
+
+def main():
+    if len(argv) < 2:
+        raise SystemExit('Usage: python3 textage2bms.py <textage_url>')
+
+    driver = get_driver()
+    try:
+        driver.get(argv[1])
+        doc = pq(driver.page_source)
+        headers = build_headers(driver)
+        sections = get_sections(doc)
+        print_header_field(headers)
+        print_main_data_field(sections)
+    finally:
+        driver.quit()
+
+
+if __name__ == '__main__':
+    main()
