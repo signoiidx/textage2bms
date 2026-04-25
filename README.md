@@ -4,18 +4,15 @@ A script to convert chart data from [textage.cc](https://textage.cc) into BMS fi
 
 ## Development
 
-- This project is maintained with OpenAI Codex-assisted development.
-- Unit tests are enforced by both a local pre-commit hook and GitHub Actions CI.
+- This project is maintained with OpenAI Codex and Claude Code-assisted development.
+- Unit tests and pylint checks are enforced by GitHub Actions CI.
 
-### Enable pre-commit hook
+### CI
 
-Run this once in your local clone:
-
-`git config core.hooksPath .githooks`
-
-After that, every commit runs:
-
-`python3 -m unittest discover -s tests -v`
+| Workflow | Trigger | What it runs |
+| --- | --- | --- |
+| Pytest | push | `python -m unittest discover -s tests -v` on Python 3.12 |
+| Pylint | push | `pylint $(git ls-files '*.py')` on Python 3.10–3.13 |
 
 ## Fork history
 
@@ -23,16 +20,19 @@ After that, every commit runs:
 - first fork: [16iro/textage2bms](https://github.com/16iro/textage2bms)
   - Applied SOF-LAN and Charge Notes over 2 bars.
 - second fork: [signoiidx/textage2bms](https://github.com/signoiidx/textage2bms)
-  - Remove unwanted files (only keep `textage2bms.py`)
-  - Still there will be more...
+  - Stripped to a single file (`textage2bms.py`)
+  - Added headless browser support and Selenium 4 compatibility
+  - Added unit test suite and GitHub Actions CI (pytest + pylint)
 
 ## Current project changes
 
-- Run in headless mode and try Chrome/Firefox WebDriver candidates automatically.
+- Runs in headless mode; tries Chrome/Chromium and Firefox WebDriver candidates automatically.
+- Unit test suite with fully mocked dependencies (no browser required to run tests).
+- Pylint-clean codebase across Python 3.10–3.13.
 
 ## Dependencies
 
-- Python 3
+- Python 3.10-3.13
 - Selenium
 - Chrom{e, ium} or Firefox
 - PyQuery
