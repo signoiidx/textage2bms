@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
+"""textage.cc chart to BMS format converter."""
+
+from sys import argv, stderr
+
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from selenium.webdriver.firefox.options import Options as FirefoxOptions
 from selenium import webdriver
 from pyquery import PyQuery as pq
-from sys import argv, stderr
 
 LN_DISABLE = False
 
@@ -20,6 +23,7 @@ CSS_LEFT_TO_CHANNEL = {
 
 
 def top_to_pos(t_height, top_px):
+    """Convert a CSS top pixel value to a BMS note slot position."""
     pos = abs(int(top_px.replace("px", "")) - t_height) - 5
     if pos == 10:
         pos = 11
@@ -34,18 +38,18 @@ def top_to_pos(t_height, top_px):
 
 
 def compress_notes(notes):
+    """Return notes unchanged; note compression is disabled."""
     return notes
-    """
-    for skip in map(lambda i: 2 ** i, range(7, 0, -1)):  # 128..2
-        masked_notes = map(lambda ib: (
-            ib[0] % skip != 0) and ib[1], enumerate(notes))
-        if not any(masked_notes):
-            return notes[::skip]
-    return notes
-    """
+    # for skip in map(lambda i: 2 ** i, range(7, 0, -1)):  # 128..2
+    #     masked_notes = map(lambda ib: (
+    #         ib[0] % skip != 0) and ib[1], enumerate(notes))
+    #     if not any(masked_notes):
+    #         return notes[::skip]
+    # return notes
 
 
-def get_channels(table):
+def get_channels(table):  # pylint: disable=too-many-locals,too-many-branches
+    """Extract per-channel note data and deferred long note endpoints from a measure table."""
     channels = {}
     t_height = int(table.attr["height"])
     deferring_lns = []
@@ -61,7 +65,7 @@ def get_channels(table):
                 top, left, height = tuple(
                     map(lambda s: s.split(":")[1].strip(), style.split(";")[:3])
                 )
-            except:
+            except:  # pylint: disable=bare-except
                 print("Padding?", pq(note), file=stderr)
                 continue
             t_i, l_i, h_i = map(lambda s: int(s.replace("px", "")), [top, left, height])
@@ -81,13 +85,13 @@ def get_channels(table):
             top, left = tuple(
                 map(lambda s: s.split(":")[1].strip(), style.split(";")[:2])
             )
-        except Exception as e:
+        except Exception:  # pylint: disable=broad-exception-caught
             print(style, file=stderr)  # BPM change?
             continue
         pos, channel = top_to_pos(t_height, top), CSS_LEFT_TO_CHANNEL[left]
         try:
             channels[channel][pos] = True
-        except Exception as e:
+        except Exception:  # pylint: disable=broad-exception-caught
             print(channel, pos, style, file=stderr)  # Unsupported?
             if pos > t_height - 1:
                 pos = t_height - 1
@@ -103,12 +107,13 @@ def get_channels(table):
             compressed_channels[channel] = compress_notes(notes)
     else:
         compressed_channels = channels
-    if measure != 1 and measure != 1 / 16:  # End trim
+    if measure not in (1, 1 / 16):  # End trim
         compressed_channels["02"] = measure
     return compressed_channels, deferring_lns, t_height
 
 
-def get_sections(doc):
+def get_sections(doc):  # pylint: disable=too-many-locals
+    """Build a sorted list of [section_num, channels] pairs from the chart document."""
     sections = []
     deferring_lns_merge = []
     section_t_height = {}
@@ -116,7 +121,7 @@ def get_sections(doc):
         table = pq(table)
         try:
             section_num = int(table.find('th[bgcolor="gray"]').text())
-        except:
+        except:  # pylint: disable=bare-except
             section_num = -1
         # print('Section', section_num, file=stderr)
         channels, deferring_lns, t_height = get_channels(table)
@@ -126,10 +131,10 @@ def get_sections(doc):
             deferring_lns_merge.append(
                 (d[0], (section_num + (d[1] // t_height)), d[1] % t_height)
             )
-    for i, section in enumerate(sections):
+    for section in sections:
         if section[0] == -1:
             new_section_num = max(sections, key=lambda s: s[0])[0] + 1
-            print("Section {} -> {}".format(section[0], new_section_num), file=stderr)
+            print(f"Section {section[0]} -> {new_section_num}", file=stderr)
             section[0] = new_section_num
             section_t_height[new_section_num] = section_t_height[-1]
     sections.sort(key=lambda s: s[0])
@@ -167,6 +172,7 @@ def get_sections(doc):
 
 
 def get_driver():
+    """Return a headless Selenium WebDriver, trying Chrome then Firefox candidates."""
     trials = [
         ("chrome", "/usr/bin/chromium"),
         ("chrome", "/usr/bin/chrome"),
@@ -191,7 +197,7 @@ def get_driver():
             if binary:
                 options.binary_location = binary
             return webdriver.Firefox(options=options)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             errors.append(f"{browser} (binary={binary or 'auto'}): {e}")
 
     error_message = "Failed to initialize any WebDriver:\n" + "\n".join(errors)
@@ -199,6 +205,7 @@ def get_driver():
 
 
 def build_headers(driver):
+    """Read JS globals from the loaded page and return a BMS header dict."""
     return {
         "#PLAYER": "1",
         "#RANK": "3",
@@ -214,12 +221,14 @@ def build_headers(driver):
 
 
 def print_header_field(headers):
+    """Write the BMS header block to stdout."""
     print("*---------------------- HEADER FIELD")
     for k, v in headers.items():
         print(k, v)
 
 
 def print_main_data_field(sections):
+    """Write the BMS main data block to stdout."""
     print("\n*---------------------- MAIN DATA FIELD\n#00101:02\n")
     for section in sections:
         section_num, channels = section
@@ -230,11 +239,12 @@ def print_main_data_field(sections):
                 data = "".join(list(map(lambda b: "AA" if b else "00", notes)))
             else:
                 data = notes
-            print("#{:03d}{}:{}".format(section_num, channel, data))
+            print(f"#{section_num:03d}{channel}:{data}")
         print()
 
 
 def main():
+    """Parse CLI arguments, load the chart URL, and write BMS to stdout."""
     if len(argv) < 2:
         raise SystemExit("Usage: python3 textage2bms.py <textage_url>")
 

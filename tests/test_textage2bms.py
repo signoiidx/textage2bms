@@ -1,3 +1,4 @@
+"""Unit tests for textage2bms module."""
 import io
 import sys
 import types
@@ -15,9 +16,11 @@ firefox_options_mod = types.ModuleType('selenium.webdriver.firefox.options')
 pyquery_mod = types.ModuleType('pyquery')
 
 
-class DummyOptions:
+class DummyOptions:  # pylint: disable=too-few-public-methods
+    """Stub for Selenium Chrome/Firefox Options used in browser setup."""
+
     def add_argument(self, _arg):
-        pass
+        """Accept a browser argument without storing it."""
 
 
 chrome_options_mod.Options = DummyOptions
@@ -35,11 +38,14 @@ sys.modules.setdefault('selenium.webdriver.firefox', firefox_mod)
 sys.modules.setdefault('selenium.webdriver.firefox.options', firefox_options_mod)
 sys.modules.setdefault('pyquery', pyquery_mod)
 
-import textage2bms
+import textage2bms  # pylint: disable=wrong-import-position
 
 
 class TestTextage2Bms(unittest.TestCase):
+    """Tests for the textage2bms conversion pipeline."""
+
     def test_build_headers_reads_expected_scripts(self):
+        """build_headers maps JS globals to the correct BMS header keys."""
         driver = MagicMock()
         values = {
             'return genre': 'GENRE',
@@ -59,6 +65,7 @@ class TestTextage2Bms(unittest.TestCase):
         self.assertEqual(driver.execute_script.call_count, 4)
 
     def test_print_main_data_field_skips_empty_channels(self):
+        """Channels with all-False notes are omitted; measure ratios print as-is."""
         sections = [
             [1, {
                 '11': [False, True],
@@ -77,14 +84,17 @@ class TestTextage2Bms(unittest.TestCase):
         self.assertNotIn('#00112:', out)
 
     def test_main_runs_pipeline_and_quits_driver(self):
+        """main() calls each pipeline stage in order and always quits the driver."""
         driver = MagicMock()
         driver.page_source = '<html></html>'
 
         with patch.object(textage2bms, 'argv', ['textage2bms.py', 'https://example.com']), \
              patch.object(textage2bms, 'get_driver', return_value=driver), \
              patch.object(textage2bms, 'pq', return_value='DOC') as pq_mock, \
-             patch.object(textage2bms, 'build_headers', return_value={'#TITLE': 'T'}) as build_headers_mock, \
-             patch.object(textage2bms, 'get_sections', return_value=[[1, {}]]) as get_sections_mock, \
+             patch.object(textage2bms, 'build_headers',
+                          return_value={'#TITLE': 'T'}) as build_headers_mock, \
+             patch.object(textage2bms, 'get_sections',
+                          return_value=[[1, {}]]) as get_sections_mock, \
              patch.object(textage2bms, 'print_header_field') as print_header_field_mock, \
              patch.object(textage2bms, 'print_main_data_field') as print_main_data_field_mock:
             textage2bms.main()
@@ -98,6 +108,7 @@ class TestTextage2Bms(unittest.TestCase):
         driver.quit.assert_called_once()
 
     def test_main_quits_driver_on_error(self):
+        """driver.quit() is called even when an exception occurs during processing."""
         driver = MagicMock()
         driver.page_source = '<html></html>'
 
@@ -113,6 +124,7 @@ class TestTextage2Bms(unittest.TestCase):
         driver.quit.assert_called_once()
 
     def test_main_requires_url_argument(self):
+        """main() exits with SystemExit when no URL argument is provided."""
         with patch.object(textage2bms, 'argv', ['textage2bms.py']):
             with self.assertRaises(SystemExit):
                 textage2bms.main()
