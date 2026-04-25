@@ -8,19 +8,19 @@ from sys import argv, stderr
 LN_DISABLE = False
 
 CSS_LEFT_TO_CHANNEL = {
-    '0px': '16',
-    '37px': '11',
-    '51px': '12',
-    '65px': '13',
-    '79px': '14',
-    '93px': '15',
-    '107px': '18',
-    '121px': '19'
+    "0px": "16",
+    "37px": "11",
+    "51px": "12",
+    "65px": "13",
+    "79px": "14",
+    "93px": "15",
+    "107px": "18",
+    "121px": "19",
 }
 
 
 def top_to_pos(t_height, top_px):
-    pos = abs(int(top_px.replace('px', '')) - t_height) - 5
+    pos = abs(int(top_px.replace("px", "")) - t_height) - 5
     if pos == 10:
         pos = 11
     if pos == 42:
@@ -47,27 +47,27 @@ def compress_notes(notes):
 
 def get_channels(table):
     channels = {}
-    t_height = int(table.attr['height'])
+    t_height = int(table.attr["height"])
     deferring_lns = []
     for channel in CSS_LEFT_TO_CHANNEL.values():
         channels[channel] = [False] * t_height
-    for note in table.find('img'):
-        style = pq(note).attr['style']
-        if style is None or 'height:' in style:  # LN
+    for note in table.find("img"):
+        style = pq(note).attr["style"]
+        if style is None or "height:" in style:  # LN
             if LN_DISABLE:
-                print('Ignoring LN', file=stderr)
+                print("Ignoring LN", file=stderr)
                 continue
             try:
-                top, left, height = tuple(map(lambda s: s.split(
-                    ':')[1].strip(), style.split(';')[:3]))
+                top, left, height = tuple(
+                    map(lambda s: s.split(":")[1].strip(), style.split(";")[:3])
+                )
             except:
-                print('Padding?', pq(note), file=stderr)
+                print("Padding?", pq(note), file=stderr)
                 continue
-            t_i, l_i, h_i = map(lambda s: int(
-                s.replace('px', '')), [top, left, height])
+            t_i, l_i, h_i = map(lambda s: int(s.replace("px", "")), [top, left, height])
             pos = top_to_pos(t_height, str((t_i + h_i) - 4))
-            key = str(l_i - 2 if l_i == 2 else l_i - 1) + 'px'
-            channel = str(int(CSS_LEFT_TO_CHANNEL[key]) + 40) # LN Channel
+            key = str(l_i - 2 if l_i == 2 else l_i - 1) + "px"
+            channel = str(int(CSS_LEFT_TO_CHANNEL[key]) + 40)  # LN Channel
 
             if channel not in channels:
                 channels[channel] = [False] * t_height
@@ -78,8 +78,9 @@ def get_channels(table):
             deferring_lns.append((channel, end_pos))
             continue
         try:
-            top, left = tuple(map(lambda s: s.split(
-                ':')[1].strip(), style.split(';')[:2]))
+            top, left = tuple(
+                map(lambda s: s.split(":")[1].strip(), style.split(";")[:2])
+            )
         except Exception as e:
             print(style, file=stderr)  # BPM change?
             continue
@@ -103,7 +104,7 @@ def get_channels(table):
     else:
         compressed_channels = channels
     if measure != 1 and measure != 1 / 16:  # End trim
-        compressed_channels['02'] = measure
+        compressed_channels["02"] = measure
     return compressed_channels, deferring_lns, t_height
 
 
@@ -123,12 +124,12 @@ def get_sections(doc):
         sections.append([section_num, channels])
         for d in deferring_lns:
             deferring_lns_merge.append(
-                (d[0], (section_num + (d[1] // t_height)), d[1] % t_height))
+                (d[0], (section_num + (d[1] // t_height)), d[1] % t_height)
+            )
     for i, section in enumerate(sections):
         if section[0] == -1:
             new_section_num = max(sections, key=lambda s: s[0])[0] + 1
-            print(
-                'Section {} -> {}'.format(section[0], new_section_num), file=stderr)
+            print("Section {} -> {}".format(section[0], new_section_num), file=stderr)
             section[0] = new_section_num
             section_t_height[new_section_num] = section_t_height[-1]
     sections.sort(key=lambda s: s[0])
@@ -137,15 +138,27 @@ def get_sections(doc):
     # print(deferring_lns_merge, file=stderr)
     for d in deferring_lns_merge:
         if d[2] != 0:
-            has_end.add((d[0], d[1],))
+            has_end.add(
+                (
+                    d[0],
+                    d[1],
+                )
+            )
     offset = sections[0][0] - 1
     for d in deferring_lns_merge:
         sec_num = d[1] - 1 - offset
         channels = sections[sec_num][1]
         if d[0] not in channels:
             channels[d[0]] = [False] * section_t_height[section_num]
-        if d[2] == 0 and (d[0], d[1],) in has_end:
-            print('Will not append LN end at', d, file=stderr)
+        if (
+            d[2] == 0
+            and (
+                d[0],
+                d[1],
+            )
+            in has_end
+        ):
+            print("Will not append LN end at", d, file=stderr)
             sections[sec_num][1][d[0]][d[2]] = False
         else:
             sections[sec_num][1][d[0]][d[2]] = True
@@ -187,43 +200,43 @@ def get_driver():
 
 def build_headers(driver):
     return {
-        '#PLAYER': '1',
-        '#RANK': '3',
-        '#DIFFICULTY': '4',
-        '#STAGEFILE': '',
-        '#GENRE': driver.execute_script('return genre'),
-        '#TITLE': driver.execute_script('return title'),
-        '#ARTIST': driver.execute_script('return artist'),
-        '#BPM': driver.execute_script('return bpm'),
-        '#PLAYLEVEL': '12',
-        '#WAV02': 'out.wav',
+        "#PLAYER": "1",
+        "#RANK": "3",
+        "#DIFFICULTY": "4",
+        "#STAGEFILE": "",
+        "#GENRE": driver.execute_script("return genre"),
+        "#TITLE": driver.execute_script("return title"),
+        "#ARTIST": driver.execute_script("return artist"),
+        "#BPM": driver.execute_script("return bpm"),
+        "#PLAYLEVEL": "12",
+        "#WAV02": "out.wav",
     }
 
 
 def print_header_field(headers):
-    print('*---------------------- HEADER FIELD')
+    print("*---------------------- HEADER FIELD")
     for k, v in headers.items():
         print(k, v)
 
 
 def print_main_data_field(sections):
-    print('\n*---------------------- MAIN DATA FIELD\n#00101:02\n')
+    print("\n*---------------------- MAIN DATA FIELD\n#00101:02\n")
     for section in sections:
         section_num, channels = section
         for channel, notes in channels.items():
             if isinstance(notes, list):
                 if not any(notes):
                     continue
-                data = "".join(list(map(lambda b: 'AA' if b else '00', notes)))
+                data = "".join(list(map(lambda b: "AA" if b else "00", notes)))
             else:
                 data = notes
-            print('#{:03d}{}:{}'.format(section_num, channel, data))
+            print("#{:03d}{}:{}".format(section_num, channel, data))
         print()
 
 
 def main():
     if len(argv) < 2:
-        raise SystemExit('Usage: python3 textage2bms.py <textage_url>')
+        raise SystemExit("Usage: python3 textage2bms.py <textage_url>")
 
     driver = get_driver()
     try:
@@ -237,5 +250,5 @@ def main():
         driver.quit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
